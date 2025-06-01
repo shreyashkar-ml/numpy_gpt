@@ -39,9 +39,9 @@ def gpt2_forward(token_ids, params, hparams):
     tok_emb = wte[np.array(token_ids)]              # (T, n_embd)
     pos_emb = wpe[np.arange(T)]                     # (T, n_embd)
     x = tok_emb + pos_emb                           # elementwise add
-    x = x[np.newaxis, :, :]                         # add batch dim -> (1, T, n_embd) as numpy doesn't natively supports broadcast like PyTorch
+    x = x[np.newaxis, :, :]                         # add batch dim -> (1, T, n_embd)
 
-    if len(blocks) > 0:
+    if len(blocks) > 0:				    # skipping Transformer Block calculations as params -> "blocks" is [] in our toy example for simplification
         for block in blocks:
             x = block.forward(x)
 
@@ -111,7 +111,7 @@ class CausalSelfAttentionNumpy:
 
         mask = np.triu(np.ones((T, T), dtype=x.dtype)*-1e9, k=1)
 
-        attn = attn + mask[np.newaxis, np.newaxis, :, :]
+        attn = attn + mask                                                      # NumPy should broadcast (T,T) to (B,head,T,T)
         attn_probs = softmax(attn, axis=-1)
         y = attn_probs @ v                                                      # (B, head, T, head_dim)
         y = y.transpose(0, 2, 1, 3).reshape(B, T, C)                            # merge heads -> (B, T, n_embd)
@@ -163,5 +163,7 @@ def load_encoder_hparams_and_params(model_size: str = "124M", models_dir: str = 
 	return encoder, hparams, params
 
 if __name__ == "__main__":
-  np.random.seed(42) 
   print(gen_text("hello", n_tokens_to_generate=5))
+  print(gen_text("hello world", n_tokens_to_generate=10))
+  print(gen_text("world", n_tokens_to_generate=3))
+	
